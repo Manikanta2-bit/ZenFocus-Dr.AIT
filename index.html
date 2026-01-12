@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZenFocus | Engineering Task Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="vanta-bg"></div>
+
+    <section id="auth-section" class="glass-panel center-panel">
+        <h1 style="transform: translateZ(30px);">ZenFocus 🎓</h1>
+        <p>Organize your studies, calm your mind.</p>
+        
+        <div class="auth-forms">
+            <input type="email" id="email" placeholder="Student Email" required>
+            <input type="password" id="password" placeholder="Password" required>
+            <button id="login-btn" class="btn-primary">Log In</button>
+            <button id="signup-btn" class="btn-secondary">Sign Up</button>
+            <div class="divider">OR</div>
+            <button id="google-btn" class="btn-google"><i class="fab fa-google"></i> Continue with Google</button>
+        </div>
+        <p id="auth-message"></p>
+    </section>
+
+    <section id="app-dashboard" class="hidden">
+        
+        <nav class="glass-nav">
+            <div class="logo">ZenFocus <span id="streak-badge">🔥 </span></div>
+            <div class="xp-container">
+                <span id="level-display" title="Your current level">Lvl 1</span>
+                <div class="xp-bar-bg"><div id="xp-bar-fill" style="width: 0%"></div></div>
+            </div>
+            <div class="nav-actions">
+                <button id="theme-toggle" class="theme-switch" title="Toggle Theme" aria-label="Toggle Dark/Light Mode">
+                    <div class="switch-track">
+                        <div class="switch-knob">
+                            <i class="fas fa-moon icon-dark"></i>
+                            <i class="fas fa-sun icon-light"></i>
+                        </div>
+                    </div>
+                </button>
+                <button id="logout-btn" title="Log Out of ZenFocus">Logout</button>
+            </div>
+        </nav>
+
+        <div class="main-layout">
+            
+            <aside class="glass-panel sidebar">
+                <div class="user-welcome">
+                    <h3>Hello, <span id="user-name">Student</span>! 👋</h3>
+                    <p id="quote-display">"Believe you can and you're halfway there."</p>
+                    
+                </div>
+
+                <div class="mode-toggles">
+                    <button id="exam-mode-btn" class="btn-primary" title="Activate Exam Mode for focused study"><i class="fas fa-user-graduate"></i> Exam Mode</button>
+                </div>
+                <div class="study-room-widget">
+                    <span class="live-dot"></span> <span id="online-count">0</span> Students Online
+                </div>
+
+                <div class="subjects-topics-management">
+                    <h4>Your Syllabus 📚</h4>
+                    <div class="subject-actions">
+                        <button id="open-add-subject-modal-btn" class="btn-secondary btn-small" title="Add New Subject"><i class="fas fa-plus"></i> Subject</button>
+                        <button id="open-add-topic-modal-btn" class="btn-secondary btn-small" title="Add New Topic"><i class="fas fa-plus"></i> Topic</button>
+                    </div>
+                    <div id="subjects-container" class="subjects-container">
+                        <!-- Subjects will be rendered here -->
+                    </div>
+                    <div id="topics-container" class="topics-container">
+                        <!-- Topics for selected subject will be rendered here -->
+                    </div>
+                </div>
+            </aside>
+
+            <main class="glass-panel task-area">
+                <div id="boss-battle-section" class="boss-battle-container">
+                    <h3 id="boss-name">Semester Exams</h3>
+                    <div class="boss-hp-bar">
+                        <div id="boss-hp-fill" class="boss-hp-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <input type="text" id="task-input" placeholder="What needs to be done?" autocomplete="off">
+                    <select id="priority-select">
+                        <option value="low">Low Priority</option> 
+                           <option value="medium">Medium</option>
+                        <option value="high">High Priority</option>
+                    </select>
+                    <select id="subject-select"><!-- Populated by JS --></select>
+                    <select id="topic-select"><!-- Populated by JS --></select>
+                    <input type="date" id="task-date" title="Set a due date for your task">
+                    <button id="add-task-btn" class="btn-primary"><i class="fas fa-plus"></i></button>
+                </div>
+
+                <div class="filters">
+                    <button class="filter-btn active" onclick="filterTasks('all')">All</button>
+                    <button class="filter-btn" onclick="filterTasks('pending')">To-Do</button>
+                    <button class="filter-btn" onclick="filterTasks('completed')">Done</button>
+                </div>
+
+                <ul id="task-list">
+                    </ul>
+                
+                <div id="empty-state" class="hidden">
+                    <img src="https://img.icons8.com/clouds/100/000000/checked.png" alt="All done">
+                    <p>No tasks yet! Enjoy your free time.</p>
+                </div>
+
+                <div class="wellness-tools">
+                    <div class="stress-meter-container">
+                        <label>Stress Level</label>
+                        <div class="progress-bar"><div id="stress-bar" style="width: 0%"></div></div>
+                        <small id="stress-text">Calculating...</small>
+                    </div>
+                    
+                    <button id="breathe-btn" class="btn-primary" title="Start a 4-7-8 breathing exercise"><i class="fas fa-lungs"></i> 4-7-8 Breathing</button>
+                    
+                    <div class="ambient-sounds">
+                        <label>Deep Focus Sounds</label>
+                        <button onclick="toggleSound('rain')" class="btn-sound" title="Toggle Rain Sound"><i class="fas fa-cloud-rain"></i></button>
+                        <button onclick="toggleSound('coffee')" class="btn-sound" title="Toggle Coffee Shop Sound"><i class="fas fa-coffee"></i></button>
+                    </div>
+
+                    <div class="pomodoro-box">
+                        <h4>Focus Mode 🍅</h4>
+                        <div class="timer-display" id="timer">25:00</div>
+                        <div class="timer-controls">
+                            <button onclick="startTimer(25)">25m</button>
+                            <button onclick="startTimer(50)">50m</button>
+                            <button onclick="resetTimer()">⏹</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </section>
+
+    <div id="breathing-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2>Relax & Breathe</h2>
+            <div class="breathing-circle" id="breath-circle">
+                <span id="breath-text">Inhale</span>
+            </div>
+            <button id="close-breath" class="btn-secondary" title="Close breathing exercise">Close</button>
+        </div>
+    </div>
+
+    <!-- Add Subject Modal -->
+    <div id="add-subject-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2>Add New Subject</h2>
+            <input type="text" id="new-subject-input" placeholder="e.g., Data Structures & Algorithms" required>
+            <div class="modal-actions">
+                <button id="save-new-subject-btn" class="btn-primary">Add Subject</button>
+                <button id="close-subject-modal" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Topic Modal -->
+    <div id="add-topic-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <h2>Add New Topic</h2>
+            <select id="topic-subject-select" class="full-width-select">
+                <!-- Subjects will be loaded here -->
+            </select>
+            <input type="text" id="new-topic-input" placeholder="e.g., Binary Trees, Deadlock" required>
+            <div class="modal-actions">
+                <button id="save-new-topic-btn" class="btn-primary">Add Topic</button>
+                <button id="close-topic-modal" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jotfor.ms/agent/embedjs/019ba7fd7a2a751ea33d83b66787da991bfa/embed.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="script.js"></script>
+</body>
+</html>
