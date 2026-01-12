@@ -35,6 +35,7 @@ let subjects = []; // New: Store loaded subjects
 let topics = [];   // New: Store loaded topics
 let userXP = 0;
 let userLevel = 1;
+let currentStatusFilter = 'all'; // Track 'all', 'pending', or 'completed'
 const sounds = {};
 let currentQuoteCategory = 'general'; // To track the current quote category
 // --- DOM ELEMENTS ---
@@ -296,9 +297,10 @@ addTaskBtn.addEventListener('click', async () => {
       uid: currentUser.uid,
       title, // Task title
       subjectId: selectedSubjectIdForTask,
-      priority,
       subjectName, // Store subject name directly
-      subject,
+      topicId: selectedTopicIdForTask,
+      topicName,
+      priority,
       dueDate: date,
       completed: false,
       createdAt: serverTimestamp()
@@ -310,6 +312,11 @@ addTaskBtn.addEventListener('click', async () => {
     console.error('Error adding task:', e);
     alert("Failed to add task. Please check your connection or login status.");
   }
+});
+
+// Update topic dropdown when subject changes in the input group
+subjectSelect.addEventListener('change', (e) => {
+  renderTopicSelectors(e.target.value);
 });
 
 // Allow "Enter" key to add task
@@ -334,8 +341,16 @@ function loadTasks() {
  
 // Render Tasks
 function renderTasks(taskArray) {
-  // Filter tasks based on selected subject and topic. If taskArray is not provided, use global 'tasks'.
   let filteredTasks = taskArray || tasks;
+
+  // 1. Filter by Status
+  if (currentStatusFilter === 'pending') {
+    filteredTasks = filteredTasks.filter(t => !t.completed);
+  } else if (currentStatusFilter === 'completed') {
+    filteredTasks = filteredTasks.filter(t => t.completed);
+  }
+
+  // 2. Filter by Subject/Topic (Sidebar)
   if (selectedSubjectId && selectedSubjectId !== 'all') {
     filteredTasks = filteredTasks.filter(task => task.subjectId === selectedSubjectId);
   }
@@ -386,7 +401,7 @@ function renderTasks(taskArray) {
         <small><i class="far fa-clock"></i> ${task.dueDate || 'No deadline'}</small>
       </div> 
       <div class="actions">
-        ${!task.completed ? `<button class="btn-split" onclick="splitTask('${task.id}', '${safeTitle}', '${task.subject}', '${task.dueDate}')" title="Smart Split Task"><i class="fas fa-project-diagram"></i></button>` : ''}
+        ${!task.completed ? `<button class="btn-split" onclick="splitTask('${task.id}', '${safeTitle}', '${task.subjectId}', '${safeSubjectName}', '${task.topicId}', '${safeTopicName}', '${task.dueDate}')" title="Smart Split Task"><i class="fas fa-project-diagram"></i></button>` : ''}
         <button onclick="toggleTask('${task.id}', ${task.completed})" title="${task.completed ? 'Mark as Pending' : 'Mark as Complete'}">
           <i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i>
         </button>
@@ -432,7 +447,7 @@ window.splitTask = async (id, title, subjectId, subjectName, topicId, topicName,
 
   for (let sub of subtasks) {
     await addDoc(collection(db, 'zenfocus_db'), { // Pass all relevant fields to subtasks, using dueDate
-      uid: currentUser.uid, title: `${sub}: ${title}`, priority: 'medium', subjectId, subjectName, topicId, topicName, dueDate: dueDate, completed: false, createdAt: serverTimestamp()
+      uid: currentUser.uid, title: `${sub}: ${title}`, priority: 'medium', subjectId: subjectId || null, subjectName: subjectName || 'General', topicId: topicId || null, topicName: topicName || 'No Topic', dueDate: dueDate, completed: false, createdAt: serverTimestamp()
     });
   }
   await deleteDoc(doc(db, 'zenfocus_db', id)); // Remove original big task
@@ -440,9 +455,11 @@ window.splitTask = async (id, title, subjectId, subjectName, topicId, topicName,
 };
 
 window.filterTasks = (type) => {
-  if (type === 'all') renderTasks(); // Render all tasks (after subject/topic filter)
-  if (type === 'pending') renderTasks(tasks.filter(t => !t.completed)); // Filter pending from all tasks
-  if (type === 'completed') renderTasks(tasks.filter(t => t.completed)); // Filter completed from all tasks
+  currentStatusFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('onclick').includes(`'${type}'`));
+  });
+  renderTasks();
 };
 
 // --- WELLNESS FEATURES ---
@@ -889,3 +906,33 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSubjectSelectors();
   renderTopicSelectors('all');
 });
+
+// --- MOBILE NAVIGATION HANDLER ---
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const targetId = btn.getAttribute('data-target');
+    if (!targetId) return; // Skip buttons with onclick handlers like Breathe
+
+    // Update Active Button
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Toggle Views
+    const views = ['tasks-view', 'sidebar-view'];
+    views.forEach(viewId => {
+      const el = document.getElementById(viewId);
+      if (viewId === targetId) {
+        el.classList.remove('mobile-hidden');
+      } else {
+        el.classList.add('mobile-hidden');
+      }
+    });
+  });
+});
+
+// --- CHATBOT DELAYED LOAD ---
+setTimeout(() => {
+  const script = document.createElement('script');
+  script.src = "https://cdn.jotfor.ms/agent/embedjs/019ba7fd7a2a751ea33d83b66787da991bfa/embed.js";
+  document.body.appendChild(script);
+}, 5000);
