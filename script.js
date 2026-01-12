@@ -11,6 +11,10 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence,
+  signInWithRedirect,
+  getRedirectResult,
   collection,
   addDoc,
   query,
@@ -139,6 +143,21 @@ function getDynamicQuote(category = 'general') {
   return list[Math.floor(Math.random() * list.length)];
 }
 
+// --- AUTHENTICATION CORE FIXES ---
+
+// 1. Ensure Auth Persistence across devices and reloads
+setPersistence(auth, browserLocalPersistence)
+  .catch((error) => console.error("Persistence Error:", error.code));
+
+// 2. Handle Redirect Result (Crucial for Mobile Google Sign-In)
+getRedirectResult(auth)
+  .then((result) => {
+    if (result?.user) console.log("Redirect sign-in successful:", result.user.email);
+  })
+  .catch((error) => {
+    console.error("Redirect Auth Error:", error.code, error.message);
+  });
+
 // --- AUTH HANDLERS ---
 onAuthStateChanged(auth, (user) => {
   if (user) {
@@ -160,15 +179,53 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// Helper: User-friendly error messages
+function handleAuthError(error) {
+  console.error("Firebase Auth Error:", error.code, error.message);
+  const messageElement = document.getElementById('auth-message');
+  let userMessage = "An unexpected error occurred. Please try again.";
+
+  switch (error.code) {
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-login-credentials':
+      userMessage = "Invalid email or password. Please check your credentials.";
+      break;
+    case 'auth/invalid-email':
+      userMessage = "Please enter a valid email address.";
+      break;
+    case 'auth/weak-password':
+      userMessage = "Password should be at least 6 characters.";
+      break;
+    case 'auth/email-already-in-use':
+      userMessage = "This email is already registered. Try logging in.";
+      break;
+    case 'auth/popup-closed-by-user':
+      userMessage = "Sign-in window was closed before finishing.";
+      break;
+    case 'auth/operation-not-allowed':
+      userMessage = "This sign-in method is not enabled in Firebase Console.";
+      break;
+  }
+  if (messageElement) messageElement.innerText = userMessage;
+}
+
 // Email/Password Login
 const loginBtn = document.getElementById('login-btn');
 loginBtn.addEventListener('click', async () => {
-  const email = document.getElementById('email').value;
+  const email = document.getElementById('email').value.trim(); // Trim whitespace
   const pass = document.getElementById('password').value;
+
+  if (!email || !pass) {
+    return handleAuthError({ code: 'auth/invalid-email' });
+  }
+
   try {
+    // Clear previous messages
+    document.getElementById('auth-message').innerText = "Logging in...";
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
-    alert(e.message);
+    handleAuthError(e);
   }
 });
 
@@ -176,32 +233,45 @@ loginBtn.addEventListener('click', async () => {
 const signupBtn = document.getElementById('signup-btn');
 signupBtn.addEventListener('click', async () => {
   const email = document.getElementById('email').value;
-  const pass = document.getElementById('password').value;
-  if (!email || !pass) return alert('Please provide email and password to sign up.');
+  const pass = document.getElementById('password').value.trim();
+  
+  if (!email || pass.length < 6) {
+    return handleAuthError({ code: 'auth/weak-password' });
+  }
+
   try {
     await createUserWithEmailAndPassword(auth, email, pass);
-    alert('Account created — you should be logged in automatically.');
   } catch (e) {
-    alert(e.message);
+    handleAuthError(e);
   }
 });
 
 // Google sign-in (single handler)
 const googleBtn = document.getElementById('google-btn');
 googleBtn.addEventListener('click', async () => {
+  // Detect mobile to prevent popup issues
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // Verify domain (Development check)
+  if (window.location.hostname !== "localhost" && !window.location.hostname.includes("firebaseapp.com")) {
+    console.warn("Warning: Ensure this domain is added to Authorized Domains in Firebase Console.");
+  }
+
   try {
-    const result = await signInWithPopup(auth, provider);
-    // Optional: extract token/credential
-    try {
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      // const token = credential?.accessToken;
-    } catch (err) {
-      // ignore if not needed
+    if (isMobile) {
+      console.log("Auth: Mobile detected, using Redirect method.");
+      await signInWithRedirect(auth, provider);
+    } else {
+      console.log("Auth: Desktop detected, using Popup method.");
+      await signInWithPopup(auth, provider);
     }
-    console.log('Signed in via Google:', result.user?.displayName || result.user?.email);
   } catch (e) {
-    console.error('Google sign-in failed', e);
-    alert('Google Login Failed: ' + e.message);
+    if (e.code === 'auth/popup-blocked') {
+      console.warn("Popup blocked, falling back to redirect...");
+      await signInWithRedirect(auth, provider);
+    } else {
+      handleAuthError(e);
+    }
   }
 });
 
