@@ -355,7 +355,7 @@ h1, h2, h3, h4, .logo {
     margin-top: 10px;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 12px;
     justify-content: center;
 }
 .subject-chip, .topic-tag {
